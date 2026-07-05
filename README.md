@@ -73,13 +73,3 @@ g++ -std=c++11 server.cpp -o server -lpthread
 ```bash
 g++ -std=c++11 -DDEBUG server.cpp -o server -lpthread
 ```
-
----
-
-## Клиент (MinGW)
-
-```bash
-g++ -O2 -std=c++11 client.cpp -o client.exe -lws2_32
-
-client.exe 127.0.0.1 8080
-```
