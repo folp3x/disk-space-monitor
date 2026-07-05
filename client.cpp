@@ -1,8 +1,9 @@
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include <iostream>
 #include <cstdint>
 #include <string>
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
 bool isValidPort(int port) {
     return port > 0 && port <= 65535;
@@ -18,7 +19,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // получение порта
     int serverPort;
     try {
         serverPort = std::stoi(argv[2]);
@@ -31,8 +31,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // получение IP
-    const char* serverIP = argv[1];
+    const char* serverIp = argv[1];
 
     // проверка поддержки сокетов системой
     WSADATA wsaData;
@@ -50,14 +49,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // формирование адреса сервера
     SOCKADDR_IN serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(serverPort);
-    int ret = inet_pton(AF_INET, serverIP, &serverAddr.sin_addr);
+
+    int ret = inet_pton(AF_INET, serverIp, &serverAddr.sin_addr);
     if (ret <= 0) {
         if (ret == 0) {
-            std::cerr << "Некорректный формат IP: " << serverIP << std::endl;
+            std::cerr << "Некорректный формат IP" << std::endl;
         } else {
             std::cerr << "Ошибка преобразования IP: "
                 << WSAGetLastError() << std::endl;
@@ -67,7 +66,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    DWORD timeoutMs = 3000;  // 3 секунды
+    DWORD timeoutMs = 3000;
     if (setsockopt(
             sock,
             SOL_SOCKET,
@@ -82,10 +81,10 @@ int main(int argc, char *argv[]) {
     }
 
     while (true) {
-        // ввод пути к диску
         std::string diskPath;
         std::cout << "Введите путь: ";
         if (!std::getline(std::cin, diskPath)) break;
+
         if (diskPath.empty()) {
             std::cerr << "Путь не может быть пустым" << std::endl;
             continue;
@@ -132,7 +131,6 @@ int main(int argc, char *argv[]) {
     }
 
     closesocket(sock);
-    // завершение использования winsock
     WSACleanup();
 
     return 0;

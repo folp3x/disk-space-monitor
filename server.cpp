@@ -3,17 +3,19 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <sys/statvfs.h>
+
 #include <pthread.h>
+#include <sys/statvfs.h>
 #include <sys/syscall.h>
 #include <sys/stat.h>
+
 #include <iostream>
 #include <cstring>
 #include <cstdio>
 #include <fstream>
 #include <string>
 
-const char IP[] = "192.168.56.101";
+const char IP[] = "127.0.0.1";
 
 struct ThreadArgs {
     int sock;
@@ -65,7 +67,7 @@ DiskInfo getDeviceInfo(const char* path) {
             info.valid = true;
             return info;
         }
-        // пропуск оставшихся символов
+        
         mounts.clear();
         mounts.ignore(10000, '\n');
     }
@@ -73,7 +75,6 @@ DiskInfo getDeviceInfo(const char* path) {
 }
 
 uint64_t htonll(uint64_t val) {
-    // преобразование 64-битного числа из little-endian в big-endian
     return (static_cast<uint64_t>(htonl(val & 0xFFFFFFFF)) << 32)
         | htonl(val >> 32);
 }
@@ -99,7 +100,6 @@ void* handleClient(void* args) {
         sendBuf[1] = htonll(usedBytes);
     }
 
-    // отправка сообщения клиенту
     ssize_t bytesSent = sendto(
         targs->sock,
         sendBuf,
@@ -130,7 +130,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // получение порта
     int port;
     try {
         port = std::stoi(argv[1]);
@@ -146,19 +145,16 @@ int main(int argc, char *argv[]) {
     int sock;
     sockaddr_in addr;
 
-    // создание сокета в Internet-домене (протокол IPv4)
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
         perror("socket");
         return 1;
     }
 
-    // адрес сокета (IPv4)
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);  // сетевой формат порта
+    addr.sin_port = htons(port);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    // связывание сокета с адресом
     if (bind(sock, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
         perror("bind");
         return 1;
@@ -173,7 +169,6 @@ int main(int argc, char *argv[]) {
 
         socklen_t clientAddrLen = sizeof(clientAddr);
 
-        // получение сообщения от клиента
         ssize_t bytesReceived = recvfrom(
             sock,
             recvBuf,
@@ -193,19 +188,18 @@ int main(int argc, char *argv[]) {
             << ":" << ntohs(clientAddr.sin_port)
             << ": " << recvBuf << std::endl;
 
-        // создание аргументов для потока
         ThreadArgs* targs = new ThreadArgs;
         targs->sock = sock;
         targs->clientAddr = clientAddr;
         memcpy(targs->recvBuf, recvBuf, bytesReceived + 1);
 
-        // создание потока
         pthread_t tid;
         if (pthread_create(&tid, nullptr, handleClient, targs) != 0) {
             std::cerr << "Не удалось создать поток" << std::endl;
             delete targs;
             continue;
         }
+        
         if (pthread_detach(tid) != 0) {
             std::cerr << "Не удалось отделить поток" << std::endl;
         }
