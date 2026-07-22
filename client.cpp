@@ -1,5 +1,4 @@
 #include <iostream>
-#include <cstdint>
 #include <string>
 
 #include <winsock2.h>
@@ -14,8 +13,8 @@ int main(int argc, char *argv[]) {
     SetConsoleOutputCP(65001);
 
     if (argc != 3) {
-        std::cout << "Использование: " << argv[0]
-            << " <IP сервера> <порт>" << std::endl;
+        std::cout << "Использование: " << argv[0] <<
+            " <IP сервера> <порт>" << std::endl;
         return 1;
     }
 
@@ -36,20 +35,20 @@ int main(int argc, char *argv[]) {
     // проверка поддержки сокетов системой
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        std::cerr << "Ошибка инициализации Winsock: "
-            << WSAGetLastError() << std::endl;
+        std::cerr << "Ошибка инициализации Winsock: " <<
+            WSAGetLastError() << std::endl;
         return 1;
     }
 
     SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock == INVALID_SOCKET) {
-        std::cerr << "Ошибка создания сокета: "
-            << WSAGetLastError() << std::endl;
+        std::cerr << "Ошибка создания сокета: " <<
+            WSAGetLastError() << std::endl;
         WSACleanup();
         return 1;
     }
 
-    SOCKADDR_IN serverAddr;
+    SOCKADDR_IN serverAddr{};
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(serverPort);
 
@@ -58,23 +57,25 @@ int main(int argc, char *argv[]) {
         if (ret == 0) {
             std::cerr << "Некорректный формат IP" << std::endl;
         } else {
-            std::cerr << "Ошибка преобразования IP: "
-                << WSAGetLastError() << std::endl;
+            std::cerr << "Ошибка преобразования IP: " <<
+            WSAGetLastError() << std::endl;
         }
+
         closesocket(sock);
         WSACleanup();
         return 1;
     }
 
-    DWORD timeoutMs = 3000;
+    const DWORD timeoutMs = 3000;
     if (setsockopt(
             sock,
             SOL_SOCKET,
             SO_RCVTIMEO,
             reinterpret_cast<const char*>(&timeoutMs),
             sizeof(timeoutMs)) == SOCKET_ERROR) {
-        std::cerr << "Не удалось установить таймаут на прием сообщения: "
-            << WSAGetLastError() << std::endl;
+        std::cerr << "Не удалось установить таймаут на прием сообщения: " <<
+            WSAGetLastError() << std::endl;
+        
         closesocket(sock);
         WSACleanup();
         return 1;
@@ -89,32 +90,35 @@ int main(int argc, char *argv[]) {
             std::cerr << "Путь не может быть пустым" << std::endl;
             continue;
         } else if (diskPath.size() > 4095) {
-            std::cerr << "Путь слишком длинный, максимум 4095 символов"
-                << std::endl;
+            std::cerr << "Путь слишком длинный, максимум 4095 символов" <<
+                std::endl;
             continue;
         }
 
         // отправка пути на сервер
-        if (sendto(sock,
+        if (sendto(
+                sock,
                 diskPath.c_str(),
                 diskPath.size(), 0,
                 reinterpret_cast<SOCKADDR*>(&serverAddr),
-                sizeof(serverAddr)) == SOCKET_ERROR) {
-                std::cerr << "Ошибка отправки данных: "
-                    << WSAGetLastError() << std::endl;
+                sizeof(serverAddr)) == SOCKET_ERROR
+            ) {
+                std::cerr << "Ошибка отправки данных: " <<
+                    WSAGetLastError() << std::endl;
             continue;
         }
 
         // получение ответа
         uint64_t recvBuf[2] = {0, 0};
-        SOCKADDR_IN fromAddr;
-        int fromLen = sizeof(fromAddr);
+        SOCKADDR_IN serverAddr;
+        int serverAddrLen = sizeof(serverAddr);
         int bytesReceived = recvfrom(
             sock,
             reinterpret_cast<char*>(recvBuf),
             sizeof(recvBuf),
             0,
-            reinterpret_cast<SOCKADDR*>(&fromAddr), &fromLen);
+            reinterpret_cast<SOCKADDR*>(&serverAddr), &serverAddrLen 
+        );
 
         if (bytesReceived == SOCKET_ERROR) {
             int err = WSAGetLastError();
@@ -126,8 +130,8 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        std::cout << "Получено сообщение: свободно " << ntohll(recvBuf[0])
-            << " байт, занято " << ntohll(recvBuf[1]) << " байт" << std::endl;
+        std::cout << "Получено сообщение: свободно " << ntohll(recvBuf[0]) <<
+            " байт, занято " << ntohll(recvBuf[1]) << " байт" << std::endl;
     }
 
     closesocket(sock);
