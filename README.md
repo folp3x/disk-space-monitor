@@ -73,3 +73,11 @@ g++ -std=c++11 server.cpp -o server -lpthread
 ```bash
 g++ -std=c++11 -DDEBUG server.cpp -o server -lpthread
 ```
+
+## Клиент
+
+```bash
+cl.exe /EHsc client.cpp ws2_32.lib
+
+client.exe <server_ip> 8080
+```
